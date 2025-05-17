@@ -1,0 +1,10 @@
+fastapi[standard]
+google.genai
+langgraph
+tavily-python
+langgraph-supervisor
+langchain_openai
+langchain
+pytest
+uvicorn
+langgraph-cli[inmem]
