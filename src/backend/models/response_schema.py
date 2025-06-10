@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Tuple
 
 GEMINI_GHG_PARAMETERS = {
     "type": "object",
@@ -2430,6 +2430,61 @@ class NetZeroInterventionParameters(BaseModel):
     Use_of_Science_Based_Targets: Optional[bool] = Field(None, description="Setting emission reduction targets in line with scientific recommendations.")
     Monitoring_and_Reporting_Mechanisms: Optional[str] = Field(None, description="Systems established to track and report emissions data accurately.")
 
+class MaterialityParameter(BaseModel):
+    double_materiality_type: Optional[str] = Field(default=None, description="Double Materiality Type (Impact/Financial/Both).")
+    stakeholder_groups_consulted: Optional[str] = Field(default=None, description="Stakeholder Groups consulted during the assessment.")
+    number_of_stakeholders_internal: Optional[int] = Field(default=None, description="Number of internal stakeholders consulted.")
+    number_of_stakeholders_external: Optional[int] = Field(default=None, description="Number of external stakeholders consulted.")
+    stakeholder_engagement_method: Optional[str] = Field(default=None, description="Method used for stakeholder engagement.")
+    materiality_assessment_methodology: Optional[str] = Field(default=None, description="Methodology used for materiality assessment.")
+    scoring_scale_used: Optional[str] = Field(default=None, description="Scoring scale used in the assessment.")
+    
+    internal_stakeholder_score: Optional[float] = Field(default=None, description="Score given by internal stakeholders.")
+    external_stakeholder_score: Optional[float] = Field(default=None, description="Score given by external stakeholders.")
+    combined_materiality_score: Optional[float] = Field(default=None, description="Combined score for materiality assessment.")
+    threshold_for_materiality: Optional[float] = Field(default=None, description="Threshold established for materiality.")
+
+    materiality_matrix: str = Field(default="Y", description="Indicates if a materiality matrix was developed (Y/N).")
+    x_axis_label_matrix: Optional[str] = Field(default=None, description="X-axis label of the materiality matrix.")
+    y_axis_label_matrix: Optional[str] = Field(default=None, description="Y-axis label of the materiality matrix.")
+    # topic_position_on_matrix: Optional[Tuple[float, float]] = Field(default=None, description="Position of the topic on the materiality matrix (X,Y).")
+
+    peer_companies_considered: Optional[str] = Field(default=None, description="Peer companies considered for the analysis.")
+    peer_selection_criteria: Optional[str] = Field(default=None, description="Criteria used to select peer companies.")
+    top_peer_topics: Optional[str] = Field(default=None, description="Top topics of interest among peer companies.")
+
+    reporting_frameworks_used: Optional[str] = Field(default=None, description="Frameworks utilized for ESG reporting (GRI/SASB/ESRS, etc.).")
+    disclosure_type: str = Field(default="Public", description="Type of disclosure (Public/Internal).")
+    disclosure_channel: Optional[str] = Field(default=None, description="Channel used for disclosure (ESG Report/Annual Report/etc.).")
+    detail_level_of_disclosure: Optional[str] = Field(default=None, description="Level of detail in the disclosure.")
+
+    key_risks_identified: Optional[str] = Field(default=None, description="Key risks identified during assessment.")
+    key_opportunities_identified: Optional[str] = Field(default=None, description="Key opportunities identified.")
+
+    is_linked_to_strategy: str = Field(default="Y", description="Linkage to company strategy (Y/N).")
+    is_linked_to_kpis: str = Field(default="Y", description="Linkage to company KPIs (Y/N).")
+    relevant_kpis: Optional[str] = Field(default=None, description="Key Performance Indicators relevant to the topic.")
+    is_linked_to_executive_compensation: Optional[str] = Field(default=None, description="Linkage of ESG metrics to executive compensation (Y/N).")
+
+    aligned_sdgs: Optional[str] = Field(default=None, description="Sustainable Development Goals the company aligns with.")
+    governance_oversight_body: Optional[str] = Field(default=None, description="Body overseeing governance related to ESG topics.")
+    role_team_owning_the_topic: Optional[str] = Field(default=None, description="Team or role responsible for the ESG topic.")
+
+    third_party_assurance: str = Field(default="Y", description="Whether third-party assurance was sought (Y/N).")
+    assurance_provider: Optional[str] = Field(default=None, description="Name of the assurance provider, if applicable.")
+
+    controversies_related_to_topic: str = Field(default="N", description="Whether there are controversies related to the topic (Y/N).")
+    controversy_summary: Optional[str] = Field(default=None, description="Summary of any controversies related to the topic.")
+
+    maturity_level_of_materiality_process: Optional[str] = Field(default=None, description="Maturity level of the materiality assessment process.")
+    quantitative_metrics: Optional[str] = Field(default=None, description="Quantitative metrics related to the ESG assessment.")
+    data_source: Optional[str] = Field(default=None, description="Source of the data (Report Name/Link/Page).")
+    ai_confidence_score: Optional[float] = Field(default=None, description="Confidence score for the AI extraction.")
+    notes_comments: Optional[str] = Field(default=None, description="Additional notes or comments.")
+
+    material_topic_description: Optional[str] = Field(default=None, description="Description of the material topic from the report.")
+    kpis_for_this_material_topic: Optional[str] = Field(default=None, description="KPIs for the material topic.")
+    
 class GHGParameters(BaseModel):
     company_name: str = Field(..., alias="Company Name", description="Name of the company.")
     greenhouse_gas_protocol_parameters: GreenhouseGasProtocolParameters = Field(..., alias="Greenhouse Gas (GHG) Protocol Parameters")
@@ -2439,7 +2494,8 @@ class GHGParameters(BaseModel):
 class GHGParameters2(BaseModel):
     # social_parameters: SocialParameters = Field(..., alias="Social Parameters")
     # governance_parameters: GovernanceParameters = Field(..., alias="Governance Parameters")
-    materiality_parameters: MaterialityParameters = Field(..., alias="Materiality Parameters")
+    # materiality_parameters: MaterialityParameters = Field(..., alias="Materiality Parameters")
+    materiality_parameters: MaterialityParameter = Field(..., alias="Materiality Parameters")
 
 class GHGParameters3(BaseModel):
     netzero_intervention_parameters: NetZeroInterventionParameters = Field(..., alias="NetZero Intervention Parameters")

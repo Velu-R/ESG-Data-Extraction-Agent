@@ -80,3 +80,7 @@ def fetch_info_from_tavily(query: str, search_depth: Literal['basic', 'advanced'
     except Exception as e:
         logger.exception("Unexpected error while querying '%s': %s", query, str(e))
         return {"error": f"Unexpected error while retrieving information for query: '{query}'."}
+    
+# query = f"What does {company_name} do and where it is located"
+# response = fetch_info_from_tavily(query=query)
+# content = [res.get("content") for res in response['results'] if res.get("content")]

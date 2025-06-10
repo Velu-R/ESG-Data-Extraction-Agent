@@ -1,9 +1,10 @@
 import os
 import re
-from typing import Optional, Dict, Union, IO, List, BinaryIO
+from typing import Optional, Dict, Union, IO, List, BinaryIO, Any
 import requests
 import io
 from dotenv import load_dotenv
+import json
 
 from google import genai
 from google.genai import types
@@ -13,42 +14,36 @@ from src.backend.utils.logger import get_logger
 logger=get_logger()
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
 
-PROMPT = (
-    """You are a PDF parsing agent specialized in extracting structured sustainability data from a company's Sustainability, ESG, or Corporate Responsibility Report in PDF format. 
-    Your task is to extract Greenhouse Gas (GHG) Protocol, Environmental (CSRD), Materiality, Net Zero Interventions, and ESG (Environmental, Social, Governance) Data with high accuracy and consistency for downstream processing.
-
-    ### Instructions:
-    1. **Schema Adherence**: Strictly follow the provided schema for output structure. Ensure every field in the schema is populated with either extracted data or a placeholder.
-    2. **Data Sources**: Extract data from all relevant sections of the PDF, including:
-       - Narrative text
-       - Tables
-       - Infographics, charts, or visual elements (interpret labels, captions, or legends to extract numerical or textual data)
-       - Footnotes or appendices
-    3. **Infographic Handling**: For infographics, prioritize:
-       - Text labels or annotations within the graphic
-       - Captions or descriptions near the infographic
-       - Legends or keys that clarify values
-       - If values are ambiguous, cross-reference with narrative text or tables discussing similar metrics.
-    4. **Year and Scope**: Identify the reporting year and scope (e.g., global, regional) for each metric. If not explicitly stated, infer from the report's context (e.g., '2023 Sustainability Report' implies 2023 data).
-    5. **Edge Cases**:
-       - If data is missing, use placeholders as specified in the schema.
-       - If multiple values exist for a field (e.g., emissions for different years), select the most recent year unless otherwise specified in the schema.
-
-    ### Output Requirements:
-    - Return a JSON object adhering to the schema.
-    - Ensure all fields are populated, using placeholders for missing data.
-    - Include a 'notes' field in the output for any assumptions, estimations, or conflicts encountered during extraction.
-
-
-    ### Task:
-    - Parse the PDF thoroughly to extract all relevant data.
-    - Ensure consistency in units, years, and terminology across the output.
-    - Handle infographics with care, prioritizing textual data and flagging estimates.
-    - Provide a complete, schema-compliant JSON output with notes for any ambiguities or assumptions.
+def get_gemini_client(api_key: str = None) -> genai.Client:
     """
-)
+    Initializes and returns a Gemini (genai) client instance.
+
+    Args:
+        api_key (str, optional): Your Gemini API key. If not provided, it uses the GEMINI_API_KEY environment variable.
+
+    Returns:
+        genai.Client: An instance of the Gemini client.
+
+    Raises:
+        ValueError: If no API key is provided or found in environment variables.
+        GenAIError: If the Gemini client fails to initialize.
+    """
+    api_key = api_key or os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise ValueError("Gemini API key must be provided or set in the GEMINI_API_KEY environment variable.")
+
+    try:
+        client = genai.Client(api_key=api_key)
+        logger.info("Gemini (genai) client initialized successfully.")
+        return client
+    except Exception as e:
+        logger.error("Failed to initialize Gemini client: %s", e)
+        raise
+
+client = get_gemini_client(api_key=GEMINI_API_KEY)
 
 def sanitize_file_name(name: str, max_length: int = 40) -> str:
     """
@@ -87,10 +82,11 @@ def get_files() -> List[str]:
     Returns:
         List[str]: List of existing file names.
     """
+    client = get_gemini_client()
     files = client.files.list()
     return [file.name for file in files]
 
-def delete_files(file_names: Union[str, List[str]]) -> None:
+def delete_files(file_names: Union[str, List[str]], client) -> None:
     """
     Deletes specified files from Gemini.
 
@@ -134,7 +130,6 @@ def upload_file(
         Exception: If upload fails.
     """
     try:
-        logger.info(f"Uploading file: {file}")
         is_url = isinstance(file, str) and file.startswith(('http://', 'https://'))
 
         if not file_name:
@@ -166,19 +161,27 @@ def upload_file(
             response = requests.get(file, headers=headers)
             response.raise_for_status()
             file_content = io.BytesIO(response.content)
-            return client.files.upload(file=file_content, config=config)
+            uploaded_file = client.files.upload(file=file_content, config=config)
+            logger.info(f"File uploaded successfully to Gemini: {gemini_file_key}")
+            return uploaded_file
 
         if isinstance(file, str):
             if not os.path.isfile(file):
                 raise FileNotFoundError(f"Local file '{file}' does not exist.")
             with open(file, "rb") as f:
-                return client.files.upload(file=f, config=config)
+                uploaded_file = client.files.upload(file=f, config=config)
+                logger.info(f"File uploaded successfully to Gemini: {gemini_file_key}")
+                return uploaded_file
         
         if hasattr(file, "read"):
             file.seek(0)
-            return client.files.upload(file=file, config=config)
-
-        return client.files.upload(file=file, config=config)
+            uploaded_file = client.files.upload(file=file, config=config)
+            logger.info(f"File uploaded successfully to Gemini: {gemini_file_key}")
+            return uploaded_file
+        
+        uploaded_file = client.files.upload(file=file, config=config)
+        logger.info(f"File uploaded successfully to Gemini: {gemini_file_key}")
+        return uploaded_file
 
     except Exception as e:
         logger.error(f"Failed to upload file '{file_name}': {e}")

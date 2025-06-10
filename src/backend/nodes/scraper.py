@@ -1,137 +1,130 @@
-import os
-import json
 from typing import List, Dict, Optional
 
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
-from google import genai
 
 from langgraph.prebuilt import create_react_agent
 
 from src.backend.utils.logger import get_logger
-from src.backend.utils.common_functions import is_valid_metadata, clean_json_output
-from src.backend.utils.system_prompts import build_peer_prompt, build_prompt_for_company, SCRAPER_SYSTEM_PROMPT
+from src.backend.utils.system_prompts import build_peer_prompt, build_company_classification_prompt, SCRAPER_SYSTEM_PROMPT
 from src.backend.services.tavily_service import fetch_info_from_tavily
+from src.backend.models.schemas import CompanyMetadata
+from src.backend.models.gics_schema import GICS_CLASSIFICATION_SCHEMA
+from src.backend.services.openai_service import get_openai_client
+from src.backend.services.gemini_service import get_gemini_client
+from src.backend.config.constants import OPENAI_MODEL
 
 logger = get_logger()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-2.0-flash"
-GEMINI_MODEL_FOR_PEERS = 'gemini-2.0-flash'
+openai_client =  get_openai_client()
+gemini_client = get_gemini_client()
 
-def fetch_company_metadata(company_name: str) -> Optional[Dict[str, str]]:
+def fetch_company_metadata(company_name: str, content: Optional[List[str]] = None) -> Optional[CompanyMetadata]:
     """
-    Fetches GICS metadata (sector, industry, region, country, etc.) for a given company
-    using a combination of web search and LLM interpretation.
+        Classifies a company using the GICS schema based on unstructured web data.
 
-    This metadata is essential for downstream tasks like peer comparison.
+        Args:
+            company_name (str): Name of the company to classify.
+            content (List[str], optional): Pre-fetched content. If not provided, it fetches using Tavily.
 
-    Args:
-        company_name (str): Name of the target company (e.g., "Tesla", "Nestle").
-
-    Returns:
-        Optional[Dict[str, str]]: A dictionary containing metadata such as:
-        - "company_name": "Full legal name of the company.",
-        - "sector": "GICS sector name (from MSCI definitions).",
-        - "industry": "GICS industry name aligned with the core activity.",
-        - "headquarters": "City and country of the company`s global headquarters.",
-        - "country": "Country of the company`s headquarters.",
-        - "region": "Geographic region (e.g., 'North America', 'Europe', 'Asia-Pacific')."
-
-        Returns `None` if metadata cannot be retrieved or fails validation.
+        Returns:
+            Optional[CompanyMetadata]: Parsed company metadata if successful, else None.
     """
-    logger.info(f"Fetching GICS metadata for company: {company_name}")
-
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        search_tool = Tool(google_search=GoogleSearch())
+        if not content:
+            query = f"What does {company_name} do and where is it located?"
+            response = fetch_info_from_tavily(query=query)
+            if not response or 'results' not in response:
+                logger.error(f"No results found for company: '{company_name}'")
+                return None
 
-        prompt = build_prompt_for_company(company_name)
-        config = GenerateContentConfig(tools=[search_tool], response_modalities=["TEXT"], temperature=0)
+            content = [
+                res.get("content")
+                for res in response['results']
+                if res.get("content")
+            ]
 
-        response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt, config=config)
-        raw_output = ''.join(part.text for part in response.candidates[0].content.parts if hasattr(part, 'text'))
-        cleaned_output = clean_json_output(raw_output)
-
-        metadata = json.loads(cleaned_output)
-
-        logger.info(f"Response : {metadata}")
-        
-        if is_valid_metadata(metadata):
-            logger.info(f"Metadata retrieval successful for {company_name}")
-            return metadata
-        else:
-            logger.warning(f"Metadata validation failed for {company_name}")
+        if not content:
+            logger.error(f"No usable content found to classify company: '{company_name}'")
             return None
 
-    except json.JSONDecodeError as je:
-        logger.error(f"[JSONDecodeError] Failed to parse model output: {je}")
+        logger.info(f"Building classification prompt for company: '{company_name}'")
+        messages = build_company_classification_prompt(content, GICS_CLASSIFICATION_SCHEMA)
+
+        completion = openai_client.responses.parse(
+            model=OPENAI_MODEL,
+            input=messages,
+            text_format=CompanyMetadata,
+            temperature=0,
+        )
+        return completion.output_parsed
+
     except Exception as e:
-        logger.error(f"[Exception] Failed to fetch metadata for {company_name}: {e}")
+        logger.error(f"Error classifying company '{company_name}': {e}", exc_info=True)
+        return None
 
-    return None
-
-def get_peer_companies(metadata: dict, num_country_peers: int = 5, num_region_peers: int = 5) -> Dict[str, List[Dict[str, str]]]:
+def get_peer_companies(
+    metadata: CompanyMetadata,
+    num_country_peers: Optional[int] = None,
+    num_region_peers: Optional[int] = None
+) -> Dict[str, List[Dict[str, str]]]:
     """
-    Retrieve ESG peer companies for a given company.
+    Retrieve ESG peer companies for a given company using GICS metadata.
 
     Args:
-        metadata (dict): Company metadata including company_name, headquarters, sector, industry, region.
-        num_country_peers (int): Number of country-level peers to retrieve.
-        num_region_peers (int): Number of regional-level peers to retrieve.
+        metadata (CompanyMetadata): Includes company_name, sector, industry_group,
+                                    industry, sub_industries, headquarters, country, region.
+        num_country_peers (Optional[int]): Number of country-level peers to retrieve.
+        num_region_peers (Optional[int]): Number of regional-level peers to retrieve.
 
     Returns:
-        Dict[str, List[Dict[str, str]]]: Dictionary with peers grouped by geography.
+        Dict[str, List[Dict[str, str]]]: Dictionary with keys "country_peers" and/or "region_peers".
     """
     if not metadata:
-        logger.error("Aborting peer analysis due to missing metadata.")
+        logger.error("Aborting peer analysis: metadata is None.")
         return {}
+    
+    if num_country_peers is None and num_region_peers is None:
+        num_country_peers = 5
+        num_region_peers = 5
+    elif num_country_peers and not num_region_peers:
+        num_region_peers = 0
+    elif num_region_peers and not num_country_peers:
+        num_country_peers = 0
+    elif num_country_peers <= 0 and num_region_peers <= 0:
+        logger.warning("Both peer counts are 0. Defaulting to 5 each.")
+        num_country_peers = num_region_peers = 5
 
-    company_name = metadata.get('company_name', 'Unknown Company')
-    logger.info(f"Initiating peer analysis for '{company_name}'. "
+    logger.info(f"Initiating peer analysis for '{metadata.company_name}'. "
                 f"Country peers: {num_country_peers}, Region peers: {num_region_peers}")
-
+    
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        search_tool = Tool(google_search=GoogleSearch())
-
-        fetch_country_peers = num_country_peers > 0
-        fetch_region_peers = num_region_peers > 0
-
-        if not fetch_country_peers and not fetch_region_peers:
-            logger.warning("Both country and region peer counts are 0. Defaulting to 5 for each.")
-            num_country_peers = 5
-            num_region_peers = 5
-            fetch_country_peers = fetch_region_peers = True
 
         prompt = build_peer_prompt(
-            metadata=metadata,
-            num_country_peers=num_country_peers if fetch_country_peers else 0,
-            num_region_peers=num_region_peers if fetch_region_peers else 0
+            company_name=metadata.company_name,
+            sector=metadata.sector,
+            industry_group=metadata.industry_group,
+            industry=metadata.industry,
+            sub_industries=metadata.sub_industries,
+            headquarters=metadata.headquarters,
+            country=metadata.country,
+            region=metadata.region,
+            num_country_peers=num_country_peers,
+            num_region_peers=num_region_peers
         )
 
-        config = GenerateContentConfig(
-            tools=[search_tool],
-            response_modalities=["TEXT"],
+
+        response = openai_client.responses.create(
+            model="gpt-4.1",
+            tools=[{
+                "type": "web_search_preview",
+                "search_context_size": "low",
+            }],
+            input=prompt,
             temperature=0
         )
+        result = response.output_text
+        logger.info(f"Result : {result}")
+        return result
 
-        response = client.models.generate_content(
-            model=GEMINI_MODEL_FOR_PEERS,
-            contents=prompt,
-            config=config
-        )
-
-        raw_output = ''.join(
-            part.text for part in response.candidates[0].content.parts if hasattr(part, 'text')
-        )
-        cleaned_output = clean_json_output(raw_output)
-        peer_data = json.loads(cleaned_output)
-
-        logger.info(f"Peer companies retrieved successfully: {json.dumps(peer_data, indent=2)}")
-        return peer_data
-
-    except json.JSONDecodeError as je:
-        logger.error(f"[JSONDecodeError] Failed to parse peer data: {je}")
     except Exception as e:
         logger.error(f"[Exception] Failed to retrieve peer companies: {e}", exc_info=True)
 
@@ -150,16 +143,9 @@ def get_company_sustainability_report(company: str, year: Optional[int] = None) 
     """
     logger.info(f"Searching for sustainability report for '{company}'" + (f" in {year}" if year else ""))
 
-    def build_query(company: str, year: Optional[int]) -> str:
-        base_query = f"{company} sustainability report"
-        if year:
-            base_query += f" {year}"
-        query = f"{base_query} filetype:pdf"
-        logger.info(f"Constructed search query: '{query}'")
-        return query
-
     try:
-        query = build_query(company, year)
+        base_query = f"{company} sustainability report"
+        query = f"{base_query} {year} filetype:pdf" if year else f"{base_query} filetype:pdf"
         response = fetch_info_from_tavily(query)
         logger.info(f"Response : {response}")
         
@@ -175,43 +161,14 @@ def get_company_sustainability_report(company: str, year: Optional[int] = None) 
         logger.error(f"Error while fetching report for '{company}': {e}", exc_info=True)
         return []
 
-
 def initialize_scraper():
-    scraper_assistant = create_react_agent(
+    """
+    Initializes a React-style scraper agent that utilizes the fetch_company_metadata, get_peer_companies,
+    and get_company_sustainability_report tools.
+    """
+    return create_react_agent(
         model="openai:gpt-4o-mini",
         tools=[fetch_company_metadata, get_peer_companies, get_company_sustainability_report],
         prompt=SCRAPER_SYSTEM_PROMPT,
         name="scraper_assistant"
     )
-    return scraper_assistant
-
-# metadata = fetch_company_metadata("Yuvabe")
-# result = get_peer_companies(metadata)
-# print(result)
-
-# report = get_company_sustainability_report(company="Infosys")
-# print(report)
-
-# metadata =  {
-# 'company_name': 'Yuvabe', 
-# 'core': 'Empowering youth through education, STEAM programs, and digital transformation services with a Work. Serve. Evolve. model.', 
-# 'sector': 'Consumer Discretionary', 
-# 'industry': 'Education Services',
-# 'headquarters': 'Auroville, India',
-# 'country': 'India', 
-# 'region': 'Asia-Pacific'
-# }
-
-# metadata =  {
-#     "company_name": "Zalando SE",
-#     "sector": "Consumer Discretionary",
-#     "industry": "Internet & Direct Marketing Retail",
-#     "headquarters": "Berlin, Germany",
-#     "country": "Germany",
-#     "region": "Europe"
-#   }
-# result = get_peer_companies(metadata,num_country_peers=1, num_region_peers=2)
-# print(result)
-
-# result = get_company_sustainability_report("Yuvabe")
-# print(result)

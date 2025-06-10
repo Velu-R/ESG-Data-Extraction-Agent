@@ -8,3 +8,9 @@ langchain
 pytest
 uvicorn
 langgraph-cli[inmem]
+pymongo
+langchain_google_genai
+pandas
+openpyxl
+unidecode
+streamlit
