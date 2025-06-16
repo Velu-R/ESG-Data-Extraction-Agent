@@ -6,5 +6,4 @@ __pycache__
 logs
 gics_format.json
 gics_schema.xlsx
-src/backend/agent/
 src/tests/test.py

@@ -139,8 +139,9 @@ def upload_file(
                 file_name = os.path.basename(file)
             elif hasattr(file, "name"):
                 file_name = os.path.basename(file.name)
-            else:
-                raise ValueError("file_name must be provided if file has no 'name' attribute.")
+                
+        if not file_name or not file_name.strip():
+            raise ValueError("file_name must be a non-empty string. Could not infer from input.")
 
         sanitized_name = sanitize_file_name(os.path.splitext(file_name)[0])
         mime_type = "application/pdf"

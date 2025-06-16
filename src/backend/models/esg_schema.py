@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Literal
 
 class Measurement(BaseModel):
     """
@@ -377,321 +377,6 @@ class WasteRecoveryDetails(BaseModel):
     #     description="Waste recovery intensity normalized per production or performance unit (metric tonnes per unit)."
     # )
 
-# __________________________Scocial Metrics___________________________________________
-
-class WorkforceGenderDiversity(BaseModel):
-    """
-    Breakdown of workforce by gender.
-
-    This includes:
-    - Male: Number of male employees.
-    - Female: Number of female employees.
-    - Total Employees: Total number of employees.
-    """
-
-    total_employees: Optional[Measurement] = Field(
-        None,
-        description="Total number of employees.",
-    )
-    male: Optional[Measurement] = Field(
-        None,
-        description="Number of male employees."
-    )
-    female: Optional[Measurement] = Field(
-        None,
-        description="Number of female employees."
-    )
-
-class HumanRightsTrainingCoverage(BaseModel):
-    """
-    Coverage of human rights and policies training.
-
-    This includes:
-    - Total permanent employees covered
-    - Employees: Office staff, management, etc.
-    - Workers: Contractual, field staff, labor, etc.
-    """
-
-    total_permanent_covered: Optional[Measurement] = Field(
-        None,
-        description="Total number of permanent staff covered under human rights and policy training.",
-    )
-    employee: Optional[Measurement] = Field(
-        None,
-        description="Number of employees (e.g., office staff, management) covered under training."
-    )
-    worker: Optional[Measurement] = Field(
-        None,
-        description="Number of workers (e.g., contractors, labor) covered under training."
-    )
-
-class TurnoverCount(BaseModel):
-    """
-    Employee turnover count by gender.
-
-    This includes:
-    - Total employees who left the organization.
-    - Male employees who left.
-    - Female employees who left.
-    """
-
-    total_employee: Optional[Measurement] = Field(
-        None,
-        description="Total number of employees who left the organization.",
-    )
-    male: Optional[Measurement] = Field(
-        None,
-        description="Number of male employees who left."
-    )
-    female: Optional[Measurement] = Field(
-        None,
-        description="Number of female employees who left."
-    )
-
-class HealthAndSafetyLTIFR(BaseModel):
-    """
-    Lost Time Injury Frequency Rate (LTIFR) for employees and workers.
-
-    LTIFR is typically defined as the number of lost time injuries per million hours worked.
-    """
-
-    employee: Optional[Measurement] = Field(
-        None,
-        description="LTIFR for employees.",
-    )
-    worker: Optional[Measurement] = Field(
-        None,
-        description="LTIFR for workers.",
-    )
-
-class IncidentBreakdown(BaseModel):
-    total: Optional[Measurement] = Field(
-        None,
-        description="Total number of incidents (employees + workers)."
-    )
-    employee: Optional[Measurement] = Field(
-        None,
-        description="Number of incidents involving employees."
-    )
-    worker: Optional[Measurement] = Field(
-        None,
-        description="Number of incidents involving workers."
-    )
-
-class OtherHealthAndSafetyIncidents(BaseModel):
-    """
-    Detailed reporting of other health and safety-related incidents,
-    including total and breakdown by employees and workers.
-
-    Covers:
-    - Recordable Incidents
-    - Fatalities
-    - High Consequence Injuries
-    """
-
-    recordable_incidents: Optional[IncidentBreakdown] = Field(
-        None,
-        description="Recordable incidents involving employees and workers."
-    )
-    fatalities: Optional[IncidentBreakdown] = Field(
-        None,
-        description="Fatalities involving employees and workers."
-    )
-    high_consequence_injuries: Optional[IncidentBreakdown] = Field(
-        None,
-        description="High consequence injuries involving employees and workers."
-    )
-
-class HealthAndSafetyTrainingCoverage(BaseModel):
-    """
-    Coverage of health and safety training by gender.
-
-    Tracks the number of employees who received health and safety training.
-    """
-
-    total_employees: Optional[Measurement] = Field(
-        None,
-        description="Total number of employees who received health and safety training.",
-    )
-    male: Optional[Measurement] = Field(
-        None,
-        description="Number of male employees trained."
-    )
-    female: Optional[Measurement] = Field(
-        None,
-        description="Number of female employees trained."
-    )
-
-class GenderBreakdown(BaseModel):
-    total: Optional[Measurement] = Field(
-        None, description="Total number of employees covered."
-    )
-    male: Optional[Measurement] = Field(
-        None, description="Number of male employees covered."
-    )
-    female: Optional[Measurement] = Field(
-        None, description="Number of female employees covered."
-    )
-
-class EmployeeWellBeingCoverage(BaseModel):
-    """
-    Coverage of measures for the well-being of employees, broken down by benefit type and gender.
-    """
-
-    health_insurance: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of health insurance."
-    )
-    accident_insurance: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of accident insurance."
-    )
-    parental_benefits: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of parental benefits."
-    )
-    day_care_facilities: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of day care facilities."
-    )
-
-class WorkerWellBeingCoverage(BaseModel):
-    """
-    Coverage of well-being measures for workers, including health and accident insurance,
-    parental benefits, and day care facilities, broken down by gender.
-    """
-
-    health_insurance: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of health insurance for workers."
-    )
-    accident_insurance: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of accident insurance for workers."
-    )
-    parental_benefits: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of parental benefits for workers."
-    )
-    day_care_facilities: Optional[GenderBreakdown] = Field(
-        None, description="Coverage of day care facilities for workers."
-    )
-
-class WellBeingCost(BaseModel):
-    """
-    Total cost incurred on employee and worker well-being programs,
-    optionally broken down by category.
-    """
-
-    total_cost: Optional[Measurement] = Field(
-        None,
-        description="Total cost incurred on all well-being programs."
-    )
-    health_insurance: Optional[Measurement] = Field(
-        None,
-        description="Cost incurred on health insurance."
-    )
-    accident_insurance: Optional[Measurement] = Field(
-        None,
-        description="Cost incurred on accident insurance."
-    )
-    parental_benefits: Optional[Measurement] = Field(
-        None,
-        description="Cost incurred on parental benefits."
-    )
-    day_care_facilities: Optional[Measurement] = Field(
-        None,
-        description="Cost incurred on day care facilities."
-    )
-
-class WagesByLocation(BaseModel):
-    """
-    Average wages for employees by location type.
-    """
-    rural: Optional[Measurement] = Field(None, description="Wages in rural locations.")
-    semi_urban: Optional[Measurement] = Field(None, description="Wages in semi-urban locations.")
-    metropolitan: Optional[Measurement] = Field(None, description="Wages in metropolitan locations.")
-    urban: Optional[Measurement] = Field(None, description="Wages in urban locations.")
-
-class FemaleWageShare(BaseModel):
-    """
-    Represents the share of wages paid to female employees as a percentage of total wages.
-    """
-    percentage: Optional[float] = Field(
-        None,
-        ge=0,
-        le=100,
-        description="Female wage share as a percentage of total wages."
-    )
-
-class GrievanceCategory(BaseModel):
-    total_complaints: Optional[int] = Field(
-        None, description="Total number of complaints reported."
-    )
-    resolved: Optional[int] = Field(
-        None, description="Number of complaints resolved."
-    )
-    not_resolved: Optional[int] = Field(
-        None, description="Number of complaints not resolved."
-    )
-
-class GrievancesReported(BaseModel):
-    posh: Optional[GrievanceCategory] = Field(
-        None, description="Grievances related to POSH (Prevention of Sexual Harassment)."
-    )
-    discrimination: Optional[GrievanceCategory] = Field(
-        None, description="Grievances related to discrimination."
-    )
-    health_and_safety: Optional[GrievanceCategory] = Field(
-        None, description="Grievances related to health and safety."
-    )
-    working_conditions: Optional[GrievanceCategory] = Field(
-        None, description="Grievances related to working conditions."
-    )
-
-class ThirdPartyAssessmentCoveragePercentage(BaseModel):
-    """
-    Percentage coverage of third party assessments per category.
-    Values represent the % of coverage (0-100).
-    """
-
-    child_labour: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage coverage of third party assessment for child labour."
-    )
-    forced_involuntary_labour: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage coverage of third party assessment for forced/involuntary labour."
-    )
-    sexual_harassment: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage coverage of third party assessment for sexual harassment."
-    )
-    discrimination_at_workplace: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage coverage of third party assessment for discrimination at workplace."
-    )
-    wages: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage coverage of third party assessment for wages."
-    )
-
-class BeneficiaryGroup(BaseModel):
-    persons_benefited: Optional[int] = Field(
-        None, description="Number of persons benefited."
-    )
-    percent_vulnerable_marginalized: Optional[float] = Field(
-        None, ge=0, le=100,
-        description="Percentage of persons benefited from vulnerable and marginalized groups."
-    )
-
-class CSRBeneficiaries(BaseModel):
-    education: Optional[BeneficiaryGroup] = Field(
-        None, description="Beneficiaries in Education."
-    )
-    employability_and_employment: Optional[BeneficiaryGroup] = Field(
-        None, description="Beneficiaries in Employability and Employment."
-    )
-    entrepreneurship: Optional[BeneficiaryGroup] = Field(
-        None, description="Beneficiaries in Entrepreneurship."
-    )
-    essential_enablers: Optional[BeneficiaryGroup] = Field(
-        None, description="Beneficiaries in Essential Enablers."
-    )
-
 # __________________________Governance Metrics___________________________________________
 
 class GenderCount(BaseModel):
@@ -852,85 +537,399 @@ class EnvironmentalWaterWaste(BaseModel):
     )
 
 # ------------------------- Social -------------------------
+# __________________________Scocial Metrics___________________________________________
 
-class SocialWorkforceAndWellBeing(BaseModel):
-    """Social metrics covering workforce composition and well-being initiatives."""
+# class WorkforceGenderDiversity(BaseModel):
+#     """
+#     Breakdown of workforce by gender.
+
+#     This includes:
+#     - Male: Number of male employees.
+#     - Female: Number of female employees.
+#     - Total Employees: Total number of employees.
+#     """
+
+#     total_employees: Optional[Measurement] = Field(
+#         None,
+#         description="Total number of employees.",
+#     )
+#     male: Optional[Measurement] = Field(
+#         None,
+#         description="Number of male employees."
+#     )
+#     female: Optional[Measurement] = Field(
+#         None,
+#         description="Number of female employees."
+#     )
+
+# class HumanRightsTrainingCoverage(BaseModel):
+#     """
+#     Coverage of human rights and policies training.
+
+#     This includes:
+#     - Total permanent employees covered
+#     - Employees: Office staff, management, etc.
+#     - Workers: Contractual, field staff, labor, etc.
+#     """
+
+#     total_permanent_covered: Optional[Measurement] = Field(
+#         None,
+#         description="Total number of permanent staff covered under human rights and policy training.",
+#     )
+#     employee: Optional[Measurement] = Field(
+#         None,
+#         description="Number of employees (e.g., office staff, management) covered under training."
+#     )
+#     worker: Optional[Measurement] = Field(
+#         None,
+#         description="Number of workers (e.g., contractors, labor) covered under training."
+#     )
+
+# class TurnoverCount(BaseModel):
+#     """
+#     Employee turnover count by gender.
+
+#     This includes:
+#     - Total employees who left the organization.
+#     - Male employees who left.
+#     - Female employees who left.
+#     """
+
+#     total_employee: Optional[Measurement] = Field(
+#         None,
+#         description="Total number of employees who left the organization.",
+#     )
+#     male: Optional[Measurement] = Field(
+#         None,
+#         description="Number of male employees who left."
+#     )
+#     female: Optional[Measurement] = Field(
+#         None,
+#         description="Number of female employees who left."
+#     )
+
+# class HealthAndSafetyLTIFR(BaseModel):
+#     """
+#     Lost Time Injury Frequency Rate (LTIFR) for employees and workers.
+
+#     LTIFR is typically defined as the number of lost time injuries per million hours worked.
+#     """
+
+#     employee: Optional[Measurement] = Field(
+#         None,
+#         description="LTIFR for employees.",
+#     )
+#     worker: Optional[Measurement] = Field(
+#         None,
+#         description="LTIFR for workers.",
+#     )
+
+# class IncidentBreakdown(BaseModel):
+#     total: Optional[Measurement] = Field(
+#         None,
+#         description="Total number of incidents (employees + workers)."
+#     )
+#     employee: Optional[Measurement] = Field(
+#         None,
+#         description="Number of incidents involving employees."
+#     )
+#     worker: Optional[Measurement] = Field(
+#         None,
+#         description="Number of incidents involving workers."
+#     )
+
+# class OtherHealthAndSafetyIncidents(BaseModel):
+#     """
+#     Detailed reporting of other health and safety-related incidents,
+#     including total and breakdown by employees and workers.
+
+#     Covers:
+#     - Recordable Incidents
+#     - Fatalities
+#     - High Consequence Injuries
+#     """
+
+#     recordable_incidents: Optional[IncidentBreakdown] = Field(
+#         None,
+#         description="Recordable incidents involving employees and workers."
+#     )
+#     fatalities: Optional[IncidentBreakdown] = Field(
+#         None,
+#         description="Fatalities involving employees and workers."
+#     )
+#     high_consequence_injuries: Optional[IncidentBreakdown] = Field(
+#         None,
+#         description="High consequence injuries involving employees and workers."
+#     )
+
+# class HealthAndSafetyTrainingCoverage(BaseModel):
+#     """
+#     Coverage of health and safety training by gender.
+
+#     Tracks the number of employees who received health and safety training.
+#     """
+
+#     total_employees: Optional[Measurement] = Field(
+#         None,
+#         description="Total number of employees who received health and safety training.",
+#     )
+#     male: Optional[Measurement] = Field(
+#         None,
+#         description="Number of male employees trained."
+#     )
+#     female: Optional[Measurement] = Field(
+#         None,
+#         description="Number of female employees trained."
+#     )
+
+# class GenderBreakdown(BaseModel):
+#     total: Optional[Measurement] = Field(
+#         None, description="Total number of employees covered."
+#     )
+#     male: Optional[Measurement] = Field(
+#         None, description="Number of male employees covered."
+#     )
+#     female: Optional[Measurement] = Field(
+#         None, description="Number of female employees covered."
+#     )
+
+# class EmployeeWellBeingCoverage(BaseModel):
+#     """
+#     Coverage of measures for the well-being of employees, broken down by benefit type and gender.
+#     """
+
+#     health_insurance: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of health insurance."
+#     )
+#     accident_insurance: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of accident insurance."
+#     )
+#     parental_benefits: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of parental benefits."
+#     )
+#     day_care_facilities: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of day care facilities."
+#     )
+
+# class WorkerWellBeingCoverage(BaseModel):
+#     """
+#     Coverage of well-being measures for workers, including health and accident insurance,
+#     parental benefits, and day care facilities, broken down by gender.
+#     """
+
+#     health_insurance: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of health insurance for workers."
+#     )
+#     accident_insurance: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of accident insurance for workers."
+#     )
+#     parental_benefits: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of parental benefits for workers."
+#     )
+#     day_care_facilities: Optional[GenderBreakdown] = Field(
+#         None, description="Coverage of day care facilities for workers."
+#     )
+
+# class WellBeingCost(BaseModel):
+#     """
+#     Total cost incurred on employee and worker well-being programs,
+#     optionally broken down by category.
+#     """
+
+#     total_cost: Optional[Measurement] = Field(
+#         None,
+#         description="Total cost incurred on all well-being programs."
+#     )
+#     health_insurance: Optional[Measurement] = Field(
+#         None,
+#         description="Cost incurred on health insurance."
+#     )
+#     accident_insurance: Optional[Measurement] = Field(
+#         None,
+#         description="Cost incurred on accident insurance."
+#     )
+#     parental_benefits: Optional[Measurement] = Field(
+#         None,
+#         description="Cost incurred on parental benefits."
+#     )
+#     day_care_facilities: Optional[Measurement] = Field(
+#         None,
+#         description="Cost incurred on day care facilities."
+#     )
+
+# class WagesByLocation(BaseModel):
+#     """
+#     Average wages for employees by location type.
+#     """
+#     rural: Optional[Measurement] = Field(None, description="Wages in rural locations.")
+#     semi_urban: Optional[Measurement] = Field(None, description="Wages in semi-urban locations.")
+#     metropolitan: Optional[Measurement] = Field(None, description="Wages in metropolitan locations.")
+#     urban: Optional[Measurement] = Field(None, description="Wages in urban locations.")
+
+# class FemaleWageShare(BaseModel):
+#     """
+#     Represents the share of wages paid to female employees as a percentage of total wages.
+#     """
+#     percentage: Optional[float] = Field(
+#         None,
+#         ge=0,
+#         le=100,
+#         description="Female wage share as a percentage of total wages."
+#     )
+
+# class GrievanceCategory(BaseModel):
+#     total_complaints: Optional[int] = Field(
+#         None, description="Total number of complaints reported."
+#     )
+#     resolved: Optional[int] = Field(
+#         None, description="Number of complaints resolved."
+#     )
+#     not_resolved: Optional[int] = Field(
+#         None, description="Number of complaints not resolved."
+#     )
+
+# class GrievancesReported(BaseModel):
+#     posh: Optional[GrievanceCategory] = Field(
+#         None, description="Grievances related to POSH (Prevention of Sexual Harassment)."
+#     )
+#     discrimination: Optional[GrievanceCategory] = Field(
+#         None, description="Grievances related to discrimination."
+#     )
+#     health_and_safety: Optional[GrievanceCategory] = Field(
+#         None, description="Grievances related to health and safety."
+#     )
+#     working_conditions: Optional[GrievanceCategory] = Field(
+#         None, description="Grievances related to working conditions."
+#     )
+
+# class ThirdPartyAssessmentCoveragePercentage(BaseModel):
+#     """
+#     Percentage coverage of third party assessments per category.
+#     Values represent the % of coverage (0-100).
+#     """
+
+#     child_labour: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage coverage of third party assessment for child labour."
+#     )
+#     forced_involuntary_labour: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage coverage of third party assessment for forced/involuntary labour."
+#     )
+#     sexual_harassment: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage coverage of third party assessment for sexual harassment."
+#     )
+#     discrimination_at_workplace: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage coverage of third party assessment for discrimination at workplace."
+#     )
+#     wages: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage coverage of third party assessment for wages."
+#     )
+
+# class BeneficiaryGroup(BaseModel):
+#     persons_benefited: Optional[int] = Field(
+#         None, description="Number of persons benefited."
+#     )
+#     percent_vulnerable_marginalized: Optional[float] = Field(
+#         None, ge=0, le=100,
+#         description="Percentage of persons benefited from vulnerable and marginalized groups."
+#     )
+
+# class CSRBeneficiaries(BaseModel):
+#     education: Optional[BeneficiaryGroup] = Field(
+#         None, description="Beneficiaries in Education."
+#     )
+#     employability_and_employment: Optional[BeneficiaryGroup] = Field(
+#         None, description="Beneficiaries in Employability and Employment."
+#     )
+#     entrepreneurship: Optional[BeneficiaryGroup] = Field(
+#         None, description="Beneficiaries in Entrepreneurship."
+#     )
+#     essential_enablers: Optional[BeneficiaryGroup] = Field(
+#         None, description="Beneficiaries in Essential Enablers."
+#     )
+
+# class SocialWorkforceAndWellBeing(BaseModel):
+#     """Social metrics covering workforce composition and well-being initiatives."""
     
-    workforce_gender_diversity: Optional["WorkforceGenderDiversity"] = Field(
-        default=None,
-        alias="Workforce Gender Diversity",
-        description="Proportion of employees by gender across the organization."
-    )
-    turnover_count: Optional["TurnoverCount"] = Field(
-        default=None,
-        alias="Turnover Count",
-        description="Annual employee turnover count or rate."
-    )
-    employee_well_being_coverage: Optional["EmployeeWellBeingCoverage"] = Field(
-        default=None,
-        alias="Employee Well-being Coverage",
-        description="Programs and initiatives targeting employee well-being."
-    )
-    worker_well_being_coverage: Optional["WorkerWellBeingCoverage"] = Field(
-        default=None,
-        alias="Worker Well-being Coverage",
-        description="Well-being coverage for contract/temporary workers."
-    )
-    well_being_cost: Optional["WellBeingCost"] = Field(
-        default=None,
-        alias="Well-being Cost",
-        description="Monetary investment in well-being initiatives."
-    )
-    wages_by_location: Optional["WagesByLocation"] = Field(
-        default=None,
-        alias="Wages by Location",
-        description="Average wages distributed by geographical location."
-    )
-    female_wage_share: Optional["FemaleWageShare"] = Field(
-        default=None,
-        alias="Female Wage Share",
-        description="Share of wages received by female employees."
-    )
+#     workforce_gender_diversity: Optional["WorkforceGenderDiversity"] = Field(
+#         default=None,
+#         alias="Workforce Gender Diversity",
+#         description="Proportion of employees by gender across the organization."
+#     )
+#     turnover_count: Optional["TurnoverCount"] = Field(
+#         default=None,
+#         alias="Turnover Count",
+#         description="Annual employee turnover count or rate."
+#     )
+#     employee_well_being_coverage: Optional["EmployeeWellBeingCoverage"] = Field(
+#         default=None,
+#         alias="Employee Well-being Coverage",
+#         description="Programs and initiatives targeting employee well-being."
+#     )
+#     worker_well_being_coverage: Optional["WorkerWellBeingCoverage"] = Field(
+#         default=None,
+#         alias="Worker Well-being Coverage",
+#         description="Well-being coverage for contract/temporary workers."
+#     )
+#     well_being_cost: Optional["WellBeingCost"] = Field(
+#         default=None,
+#         alias="Well-being Cost",
+#         description="Monetary investment in well-being initiatives."
+#     )
+#     wages_by_location: Optional["WagesByLocation"] = Field(
+#         default=None,
+#         alias="Wages by Location",
+#         description="Average wages distributed by geographical location."
+#     )
+#     female_wage_share: Optional["FemaleWageShare"] = Field(
+#         default=None,
+#         alias="Female Wage Share",
+#         description="Share of wages received by female employees."
+#     )
 
 
-class SocialTrainingAndCSR(BaseModel):
-    """Social metrics related to training, safety, and CSR activities."""
+# class SocialTrainingAndCSR(BaseModel):
+#     """Social metrics related to training, safety, and CSR activities."""
     
-    human_rights_training_coverage: Optional["HumanRightsTrainingCoverage"] = Field(
-        default=None,
-        alias="Human Rights Training Coverage",
-        description="Percentage of workforce trained on human rights policies."
-    )
-    health_and_safety_ltifr: Optional["HealthAndSafetyLTIFR"] = Field(
-        default=None,
-        alias="LTIFR",
-        description="Lost Time Injury Frequency Rate (LTIFR) for the reporting period."
-    )
-    other_health_and_safety_incidents: Optional["OtherHealthAndSafetyIncidents"] = Field(
-        default=None,
-        alias="Other Safety Incidents",
-        description="Other recordable safety incidents beyond LTIFR."
-    )
-    health_and_safety_training_coverage: Optional["HealthAndSafetyTrainingCoverage"] = Field(
-        default=None,
-        alias="Health & Safety Training Coverage",
-        description="Proportion of employees receiving safety-related training."
-    )
-    grievances_reported: Optional["GrievancesReported"] = Field(
-        default=None,
-        alias="Grievances Reported",
-        description="Number of employee or stakeholder grievances filed."
-    )
-    third_party_assessment_coverage_percentage: Optional["ThirdPartyAssessmentCoveragePercentage"] = Field(
-        default=None,
-        alias="Third-party Assessment Coverage",
-        description="Percentage of suppliers or partners assessed by third-party audits."
-    )
-    csr_beneficiaries: Optional["CSRBeneficiaries"] = Field(
-        default=None,
-        alias="CSR Beneficiaries",
-        description="Individuals or communities positively impacted by CSR programs."
-    )
+#     human_rights_training_coverage: Optional["HumanRightsTrainingCoverage"] = Field(
+#         default=None,
+#         alias="Human Rights Training Coverage",
+#         description="Percentage of workforce trained on human rights policies."
+#     )
+#     health_and_safety_ltifr: Optional["HealthAndSafetyLTIFR"] = Field(
+#         default=None,
+#         alias="LTIFR",
+#         description="Lost Time Injury Frequency Rate (LTIFR) for the reporting period."
+#     )
+#     other_health_and_safety_incidents: Optional["OtherHealthAndSafetyIncidents"] = Field(
+#         default=None,
+#         alias="Other Safety Incidents",
+#         description="Other recordable safety incidents beyond LTIFR."
+#     )
+#     health_and_safety_training_coverage: Optional["HealthAndSafetyTrainingCoverage"] = Field(
+#         default=None,
+#         alias="Health & Safety Training Coverage",
+#         description="Proportion of employees receiving safety-related training."
+#     )
+#     grievances_reported: Optional["GrievancesReported"] = Field(
+#         default=None,
+#         alias="Grievances Reported",
+#         description="Number of employee or stakeholder grievances filed."
+#     )
+#     third_party_assessment_coverage_percentage: Optional["ThirdPartyAssessmentCoveragePercentage"] = Field(
+#         default=None,
+#         alias="Third-party Assessment Coverage",
+#         description="Percentage of suppliers or partners assessed by third-party audits."
+#     )
+#     csr_beneficiaries: Optional["CSRBeneficiaries"] = Field(
+#         default=None,
+#         alias="CSR Beneficiaries",
+#         description="Individuals or communities positively impacted by CSR programs."
+#     )
 
 # ------------------------- Governance -------------------------
 
@@ -993,13 +992,49 @@ class ReportMetadata(BaseModel):
 
 class ESGMaterialTopicPosition(BaseModel):
     """
-    Represents the position of an ESG (Environmental, Social, Governance) material topic 
-    on a materiality matrix including its business relevance and stakeholder concern.
+    Describes a specific ESG (Environmental, Social, and Governance) topic that is considered material
+    to the organization, along with a concise explanation of its strategic importance.
+
+    This class is primarily used to summarize and explain why each ESG topic was selected
+    as material based on stakeholder feedback and business context.
     """
 
     topic_name: str = Field(
         ...,
-        description="Name of the ESG material topic (e.g., 'Climate Change', 'Data Privacy').",
+        description="Descriptive title of the ESG material topic (e.g., 'Climate Change', 'Diversity & Inclusion').",
+        example="Climate Change"
+    )
+
+    topic_importance_summary: str = Field(
+        ...,
+        description=(
+            "Concise summary (2-4 sentences) describing the significance of the topic, "
+            "including why it matters to the company and its stakeholders. Should reference "
+            "risks, opportunities, or compliance relevance."
+        ),
+        example=(
+            "Climate change poses risks to operational stability and long-term growth. "
+            "It is also critical for maintaining regulatory compliance, satisfying investor expectations, "
+            "and building a resilient supply chain."
+        )
+    )
+
+class ESGMaterialMatrix(BaseModel):
+    """
+    Defines the relative placement of an ESG material topic within a materiality matrix.
+
+    The matrix is a 2D coordinate system where:
+    - X-axis = Relevance to business strategy and operations
+    - Y-axis = Importance to external stakeholders (e.g., investors, regulators, communities)
+    Scores are usually on a 0-5 scale.
+    """
+
+    topic_name: str = Field(
+        ...,
+        description=(
+            "The name of the ESG material topic corresponding to a plotted point on the matrix. "
+            "This should exactly match the topic listed in ESGMaterialTopicPosition."
+        ),
         example="Climate Change"
     )
 
@@ -1007,7 +1042,10 @@ class ESGMaterialTopicPosition(BaseModel):
         ...,
         ge=0.0,
         le=5.0,
-        description="X-axis score (0-5) representing relevance to the company`s business strategy.",
+        description=(
+            "X-axis score (0 to 5), representing how critical the topic is to the company`s business model, "
+            "strategy, risk, and opportunity profile."
+        ),
         example=4.5
     )
 
@@ -1015,24 +1053,236 @@ class ESGMaterialTopicPosition(BaseModel):
         ...,
         ge=0.0,
         le=5.0,
-        description="Y-axis score (0-5) indicating stakeholder concern or priority level.",
+        description=(
+            "Y-axis score (0 to 5), indicating the level of concern or priority this topic holds "
+            "for stakeholders such as investors, employees, customers, and regulators."
+        ),
         example=3.8
     )
 
-    topic_importance_summary: str = Field(
+class MaterialityMetrics(BaseModel):
+    """
+    Represents a company's ESG materiality assessment, including a summary of 
+    material topics and their positions in a 2D matrix based on relevance to stakeholders 
+    and business impact.
+    """
+
+    material_topics: List[ESGMaterialTopicPosition] = Field(
         ...,
-        description="Concise summary (2-4 sentences) explaining the topic`s importance and relevance to the organization.",
-        example=(
-            "Climate change is a critical issue due to its impact on operational resilience, regulatory compliance, "
-            "and increasing pressure from investors and customers to adopt sustainable practices."
+        description=(
+            "List of ESG material topics with accompanying descriptions or summaries. "
+            "These topics reflect the most significant sustainability issues for the organization "
+            "based on stakeholder engagement and internal assessment."
         )
     )
 
-class Materiality_Metrics(BaseModel):
-    material_topics: List['ESGMaterialTopicPosition'] = Field(
+    material_matrix: List[ESGMaterialMatrix] = Field(
         ...,
         description=(
-            "List of ESG material topics with coordinates on the materiality matrix, "
-            "indicating their importance to both stakeholders and business strategy."
+            "2D coordinates for ESG topics positioned on a materiality matrix. "
+            "Each point typically reflects a topic's relative importance to external stakeholders "
+            "(Y-axis) and its impact on business success (X-axis)."
         )
+    )
+# _______________________________________Social_______________________________________________________________
+
+class WorkforceGenderDiversity(BaseModel):
+    """Breakdown of workforce by gender."""
+    total_employees: Optional[Measurement] = Field(None, description="Total number of employees.")
+    male: Optional[Measurement] = Field(None, description="Number of male employees.")
+    female: Optional[Measurement] = Field(None, description="Number of female employees.")
+
+class HumanRightsTrainingCoverage(BaseModel):
+    """Coverage of human rights and policy training among employees and workers."""
+    total_permanent_covered: Optional[Measurement] = Field(None, description="Total permanent staff covered by training.")
+    employee: Optional[Measurement] = Field(None, description="Employees (e.g., office staff) covered.")
+    worker: Optional[Measurement] = Field(None, description="Workers (e.g., contractual, field staff) covered.")
+
+class TurnoverCount(BaseModel):
+    """Employee turnover data by gender."""
+    total_employee: Optional[Measurement] = Field(None, description="Total employees who left.")
+    male: Optional[Measurement] = Field(None, description="Male employees who left.")
+    female: Optional[Measurement] = Field(None, description="Female employees who left.")
+
+class HealthAndSafetyLTIFR(BaseModel):
+    """Lost Time Injury Frequency Rate (LTIFR) by employee and worker categories."""
+    employee: Optional[Measurement] = Field(None, description="LTIFR for employees.")
+    worker: Optional[Measurement] = Field(None, description="LTIFR for workers.")
+
+class IncidentBreakdown(BaseModel):
+    total: Optional[Measurement] = Field(None, description="Total number of incidents.")
+    employee: Optional[Measurement] = Field(None, description="Employee-related incidents.")
+    worker: Optional[Measurement] = Field(None, description="Worker-related incidents.")
+
+class OtherHealthAndSafetyIncidents(BaseModel):
+    """Detailed reporting of other health and safety-related incidents."""
+    recordable_incidents: Optional[IncidentBreakdown] = Field(None, description="Recordable incidents.")
+    fatalities: Optional[IncidentBreakdown] = Field(None, description="Reported fatalities.")
+    high_consequence_injuries: Optional[IncidentBreakdown] = Field(None, description="High consequence injuries.")
+
+class HealthAndSafetyTrainingCoverage(BaseModel):
+    """Health and safety training coverage by gender."""
+    total_employees: Optional[Measurement] = Field(None, description="Total trained employees.")
+    male: Optional[Measurement] = Field(None, description="Male employees trained.")
+    female: Optional[Measurement] = Field(None, description="Female employees trained.")
+
+class GenderBreakdown(BaseModel):
+    total: Optional[Measurement] = Field(None, description="Total individuals covered.")
+    male: Optional[Measurement] = Field(None, description="Males covered.")
+    female: Optional[Measurement] = Field(None, description="Females covered.")
+
+class EmployeeWellBeingCoverage(BaseModel):
+    """Employee well-being benefits breakdown by gender."""
+    health_insurance: Optional[GenderBreakdown] = Field(None, description="Health insurance coverage.")
+    accident_insurance: Optional[GenderBreakdown] = Field(None, description="Accident insurance coverage.")
+    parental_benefits: Optional[GenderBreakdown] = Field(None, description="Parental benefit coverage.")
+    day_care_facilities: Optional[GenderBreakdown] = Field(None, description="Day care facility coverage.")
+
+class WorkerWellBeingCoverage(BaseModel):
+    """Worker well-being benefits breakdown by gender."""
+    health_insurance: Optional[GenderBreakdown] = Field(None, description="Health insurance for workers.")
+    accident_insurance: Optional[GenderBreakdown] = Field(None, description="Accident insurance for workers.")
+    parental_benefits: Optional[GenderBreakdown] = Field(None, description="Parental benefits for workers.")
+    day_care_facilities: Optional[GenderBreakdown] = Field(None, description="Day care facilities for workers.")
+
+class WellBeingCost(BaseModel):
+    """Total cost of well-being programs by category."""
+    total_cost: Optional[Measurement] = Field(None, description="Total well-being program cost.")
+    health_insurance: Optional[Measurement] = Field(None, description="Cost of health insurance.")
+    accident_insurance: Optional[Measurement] = Field(None, description="Cost of accident insurance.")
+    parental_benefits: Optional[Measurement] = Field(None, description="Cost of parental benefits.")
+    day_care_facilities: Optional[Measurement] = Field(None, description="Cost of day care facilities.")
+
+class WagesByLocation(BaseModel):
+    """Average wages segmented by location type."""
+    rural: Optional[Measurement] = Field(None, description="Wages in rural areas.")
+    semi_urban: Optional[Measurement] = Field(None, description="Wages in semi-urban areas.")
+    metropolitan: Optional[Measurement] = Field(None, description="Wages in metropolitan areas.")
+    urban: Optional[Measurement] = Field(None, description="Wages in urban areas.")
+
+class FemaleWageShare(BaseModel):
+    """Percentage of total wages paid to female employees."""
+    percentage: Optional[float] = Field(None, ge=0, le=100, description="Female wage share (%).")
+
+class GrievanceCategory(BaseModel):
+    total_complaints: Optional[int] = Field(None, description="Total complaints reported.")
+    resolved: Optional[int] = Field(None, description="Complaints resolved.")
+    not_resolved: Optional[int] = Field(None, description="Complaints unresolved.")
+
+class GrievancesReported(BaseModel):
+    posh: Optional[GrievanceCategory] = Field(None, description="POSH-related grievances.")
+    discrimination: Optional[GrievanceCategory] = Field(None, description="Discrimination-related grievances.")
+    health_and_safety: Optional[GrievanceCategory] = Field(None, description="Health & safety grievances.")
+    working_conditions: Optional[GrievanceCategory] = Field(None, description="Working condition grievances.")
+
+class ThirdPartyAssessmentCoveragePercentage(BaseModel):
+    """Percentage of third-party assessment coverage across various labor rights categories."""
+    child_labour: Optional[float] = Field(None, ge=0, le=100, description="Coverage for child labour.")
+    forced_involuntary_labour: Optional[float] = Field(None, ge=0, le=100, description="Coverage for forced labour.")
+    sexual_harassment: Optional[float] = Field(None, ge=0, le=100, description="Coverage for sexual harassment.")
+    discrimination_at_workplace: Optional[float] = Field(None, ge=0, le=100, description="Coverage for workplace discrimination.")
+    wages: Optional[float] = Field(None, ge=0, le=100, description="Coverage for wage-related issues.")
+
+class BeneficiaryGroup(BaseModel):
+    persons_benefited: Optional[int] = Field(None, description="Number of individuals benefited.")
+    percent_vulnerable_marginalized: Optional[float] = Field(None, ge=0, le=100, description="% of marginalized/vulnerable beneficiaries.")
+
+class CSRBeneficiaries(BaseModel):
+    education: Optional[BeneficiaryGroup] = Field(None, description="CSR beneficiaries in education.")
+    employability_and_employment: Optional[BeneficiaryGroup] = Field(None, description="CSR beneficiaries in employment.")
+    entrepreneurship: Optional[BeneficiaryGroup] = Field(None, description="CSR beneficiaries in entrepreneurship.")
+    essential_enablers: Optional[BeneficiaryGroup] = Field(None, description="CSR beneficiaries in essential enablers.")
+
+class SocialWorkforceAndWellBeing(BaseModel):
+    """Workforce composition and well-being data."""
+    workforce_gender_diversity: Optional[WorkforceGenderDiversity] = Field(None, alias="Workforce Gender Diversity")
+    turnover_count: Optional[TurnoverCount] = Field(None, alias="Turnover Count")
+    employee_well_being_coverage: Optional[EmployeeWellBeingCoverage] = Field(None, alias="Employee Well-being Coverage")
+    worker_well_being_coverage: Optional[WorkerWellBeingCoverage] = Field(None, alias="Worker Well-being Coverage")
+    well_being_cost: Optional[WellBeingCost] = Field(None, alias="Well-being Cost")
+    wages_by_location: Optional[WagesByLocation] = Field(None, alias="Wages by Location")
+    female_wage_share: Optional[FemaleWageShare] = Field(None, alias="Female Wage Share")
+
+class SocialTrainingAndCSR(BaseModel):
+    """Social metrics covering training, safety, and CSR."""
+    human_rights_training_coverage: Optional[HumanRightsTrainingCoverage] = Field(None, alias="Human Rights Training Coverage")
+    health_and_safety_ltifr: Optional[HealthAndSafetyLTIFR] = Field(None, alias="LTIFR")
+    other_health_and_safety_incidents: Optional[OtherHealthAndSafetyIncidents] = Field(None, alias="Other Safety Incidents")
+    health_and_safety_training_coverage: Optional[HealthAndSafetyTrainingCoverage] = Field(None, alias="Health & Safety Training Coverage")
+    grievances_reported: Optional[GrievancesReported] = Field(None, alias="Grievances Reported")
+    third_party_assessment_coverage_percentage: Optional[ThirdPartyAssessmentCoveragePercentage] = Field(None, alias="Third-party Assessment Coverage")
+    csr_beneficiaries: Optional[CSRBeneficiaries] = Field(None, alias="CSR Beneficiaries")
+
+# ____________________________________Materiality______________________________________________________
+
+class ESGMaterialTopicPosition(BaseModel):
+    """
+    Represents the position of an ESG (Environmental, Social, Governance) material topic 
+    on a materiality matrix including its business relevance and stakeholder concern.
+    """
+    topic_name: str = Field(
+        ...,
+        description="Name of the ESG material topic (e.g., 'Climate Change', 'Data Privacy').",
+        example="Climate Change"
+    )
+    topic_importance_summary: str = Field(
+        ...,
+        description="Concise summary describing the significance of the topic to the company and its stakeholders."
+    )
+    extraction_confidence: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score (0.0-1.0) for the extracted summary."
+    )
+
+class ESGMaterialMatrix(BaseModel):
+    """
+    Defines the relative placement of an ESG material topic within a materiality matrix.
+    """
+    topic_name: str = Field(
+        ...,
+        description="The name of the ESG material topic being plotted."
+    )
+    x_axis: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=5.0,
+        description="X-axis score (0-5): relevance to business strategy, risk, and opportunity."
+    )
+    y_axis: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=5.0,
+        description="Y-axis score (0-5): priority level for stakeholders."
+    )
+    bounding_box: Optional[List[float]] = Field(
+        None,
+        description="Bounding box [x0, y0, x1, y1] if extracted from infographic or matrix image."
+    )
+    source_type: Optional[Literal["image", "table", "text", "ocr"]] = Field(
+        "image",
+        description="Source type from which matrix position was extracted."
+    )
+    extraction_confidence: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score (0.0-1.0) for position extraction."
+    )
+
+
+class MaterialityAssessment(BaseModel):
+    """
+    ESG materiality topics and their matrix positions as reported by the company.
+    """
+    material_topics: Optional[List[ESGMaterialTopicPosition]] = Field(
+        None,
+        alias="Material Topics",
+        description="List of ESG material topics with summaries."
+    )
+    material_matrix: Optional[List[ESGMaterialMatrix]] = Field(
+        None,
+        alias="Materiality Matrix",
+        description="2D coordinates showing business vs stakeholder relevance of ESG topics."
     )
