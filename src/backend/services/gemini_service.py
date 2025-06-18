@@ -1,20 +1,18 @@
 import os
 import re
-from typing import Optional, Dict, Union, IO, List, BinaryIO, Any
+from typing import Optional, Dict, Union, IO, List, BinaryIO
 import requests
 import io
 from dotenv import load_dotenv
-import json
 
 from google import genai
 from google.genai import types
 
 from src.backend.utils.logger import get_logger
+from src.backend.config.config import config
 
 logger=get_logger()
 load_dotenv()
-
-GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
 
 def get_gemini_client(api_key: str = None) -> genai.Client:
     """
@@ -30,20 +28,16 @@ def get_gemini_client(api_key: str = None) -> genai.Client:
         ValueError: If no API key is provided or found in environment variables.
         GenAIError: If the Gemini client fails to initialize.
     """
-    api_key = api_key or os.getenv("GEMINI_API_KEY")
-
-    if not api_key:
-        raise ValueError("Gemini API key must be provided or set in the GEMINI_API_KEY environment variable.")
 
     try:
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key = config.GEMINI_API_KEY)
         logger.info("Gemini (genai) client initialized successfully.")
         return client
     except Exception as e:
         logger.error("Failed to initialize Gemini client: %s", e)
         raise
 
-client = get_gemini_client(api_key=GEMINI_API_KEY)
+client = get_gemini_client()
 
 def sanitize_file_name(name: str, max_length: int = 40) -> str:
     """
@@ -82,7 +76,6 @@ def get_files() -> List[str]:
     Returns:
         List[str]: List of existing file names.
     """
-    client = get_gemini_client()
     files = client.files.list()
     return [file.name for file in files]
 

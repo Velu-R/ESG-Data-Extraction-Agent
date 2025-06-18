@@ -10,34 +10,34 @@ from dotenv import load_dotenv
 from langchain_core.tools import tool
 
 from src.backend.utils.logger import get_logger
-from src.backend.services.gemini_service import upload_file, get_gemini_client
-from src.backend.models.esg_schema import (
-    ReportMetadata, EnvironmentalEmissionsEnergy, EnvironmentalWaterWaste,
-    SocialTrainingAndCSR, SocialWorkforceAndWellBeing,
-    GovernanceEthicsAndComplaints, GovernanceStructureAndOpenness
+from src.backend.services.gemini_service import upload_file
+from src.backend.schemas.esg_schema import (
+    ReportMetadata, EnvironmentalEmissionsEnergy, EnvironmentalWaterWaste, SocialTrainingAndCSR, 
+    SocialWorkforceAndWellBeing, GovernanceEthicsAndComplaints, GovernanceStructureAndOpenness,
+    MaterialityAssessment
 )
 from src.backend.utils.system_prompts import EXTRACTOR_TOOL_PROMPT
-from src.backend.utils.logger import get_logger
 from src.backend.utils.system_prompts import build_peer_prompt, build_company_classification_prompt
 from src.backend.services.tavily_service import fetch_info_from_tavily
-from src.backend.models.schemas import CompanyMetadata
-from src.backend.models.gics_schema import GICS_CLASSIFICATION_SCHEMA
+from src.backend.schemas.scraper_schema import CompanyMetadata
+from src.backend.schemas.gics_schema import GICS_CLASSIFICATION_SCHEMA
+from src.backend.config.config import config
 from src.backend.services.openai_service import get_openai_client
 from src.backend.services.gemini_service import get_gemini_client
-from src.backend.config.config import config
 
 
-openai_client =  get_openai_client()
 gemini_client = get_gemini_client()
+openai_client=get_openai_client()
 
 RESPONSE_SCHEMA = [
     ReportMetadata,
-    # EnvironmentalEmissionsEnergy,
-    # EnvironmentalWaterWaste,
-    # SocialTrainingAndCSR,
-    # SocialWorkforceAndWellBeing,
-    # GovernanceEthicsAndComplaints,
-    # GovernanceStructureAndOpenness,
+    EnvironmentalEmissionsEnergy,
+    EnvironmentalWaterWaste,
+    SocialTrainingAndCSR,
+    SocialWorkforceAndWellBeing,
+    GovernanceEthicsAndComplaints,
+    GovernanceStructureAndOpenness,
+    MaterialityAssessment
 ]
 
 load_dotenv()
@@ -45,17 +45,37 @@ logger = get_logger()
 
 thread_local = threading.local()
 
+@tool
 def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Optional[Dict[str, Any]]:
     """
-    Extracts ESG emission-related data from a PDF using the Gemini API.
-    Ensures strict schema-by-schema validation and returns None if any schema fails.
-    Successfully extracted data is upserted into MongoDB with reporting metadata.
+    Tool: ESG Report Extractor
 
-    Args:
-        file_input (Union[BinaryIO, bytes, str]): PDF input (file path, stream, or binary data).
+    Uploads and processes a sustainability report (PDF) using the Gemini model to extract structured ESG data.
 
-    Returns:
-        Optional[Dict[str, Any]]: Success message with link, or None if extraction failed.
+    This tool:
+    - Uploads a report to Gemini.
+    - Iteratively extracts predefined ESG schemas.
+    - Merges results into a unified JSON object.
+    - Tracks Gemini token usage.
+
+    Input:
+        file_input (str | bytes | BinaryIO): ESG PDF report.
+            - Accepts: local file path, remote URL (ending in .pdf), byte stream.
+
+    Output:
+        dict | None:
+            {
+                "_id": <company_legal_name>,
+                "year": <reporting_year>,
+                "esg_report": {merged ESG data},
+                "token_usage": {
+                    "total_prompt_tokens": int,
+                    "total_output_tokens": int,
+                    "total_tokens": int
+                }
+            }
+
+    Returns None on failure or if required metadata is missing.
     """
     if not file_input:
         logger.error("No file input provided for ESG extraction.")
@@ -69,6 +89,11 @@ def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Op
     except Exception as upload_err:
         logger.error(f"Exception during file upload: {upload_err}")
         return None
+    
+    if not hasattr(thread_local, "gemini_client"):
+        thread_local.gemini_client = gemini_client
+    
+    client = thread_local.gemini_client
 
     merged_result: Dict[str, Any] = {}
     token_usage = {
@@ -76,8 +101,8 @@ def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Op
         "total_output_tokens": 0,
         "total_tokens": 0
     }
-    MAX_RETRIES = 10
-    RETRY_DELAY_SECONDS = 60
+    MAX_RETRIES = config.MAX_RETRIES
+    RETRY_DELAY_SECONDS = config.RETRY_DELAY_SECONDS
 
     for schema in RESPONSE_SCHEMA:
         schema_name = getattr(schema, "__name__", str(schema))
@@ -85,9 +110,7 @@ def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Op
 
         while attempt < MAX_RETRIES:
             try:
-                local_client = get_gemini_client() if callable(get_gemini_client) else gemini_client
-
-                response = local_client.models.generate_content(
+                response = client.models.generate_content(
                     model=config.GEMINI_EXTRACTION_MODEL,
                     contents=[uploaded_file, EXTRACTOR_TOOL_PROMPT],
                     config={
@@ -136,7 +159,7 @@ def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Op
     if not company_legal_name or not reporting_year:
         logger.error("Missing 'company_legal_name' or 'reporting_year' in report metadata.")
         return None
-
+    
     return {
         "_id": company_legal_name,
         "year": str(reporting_year),
@@ -144,163 +167,36 @@ def extract_emission_data_as_json(file_input: Union[BinaryIO, bytes, str]) -> Op
         "token_usage": token_usage
     }
 
-
-def fetch_company_metadata(company_name: str, content: Optional[List[str]] = None) -> Optional[CompanyMetadata]:
+@tool    
+def upsert_esg_report(document: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-        Classifies a company using the GICS schema based on unstructured web data.
+    Tool: ESG Report Upserter
 
-        Args:
-            company_name (str): Name of the company to classify.
-            content (List[str], optional): Pre-fetched content. If not provided, it fetches using Tavily.
+    Inserts or updates a specific ESG report for a company in the database.
 
-        Returns:
-            Optional[CompanyMetadata]: Parsed company metadata if successful, else None.
-    """
-    try:
-        if not content:
-            query = f"What does {company_name} do and where is it located?"
-            response = fetch_info_from_tavily(query=query)
-            if not response or 'results' not in response:
-                logger.error(f"No results found for company: '{company_name}'")
-                return None
+    This tool:
+    - Upserts an ESG report under the `esg_reports.{year}` path in the document.
+    - Automatically creates a company document if it doesn't exist.
+    - Logs operation type: inserted, updated, unchanged, or error.
 
-            content = [
-                res.get("content")
-                for res in response['results']
-                if res.get("content")
-            ]
+    Input:
+        document (dict):
+            {
+                "_id": <company_legal_name>,
+                "year": <reporting_year>,
+                "esg_report": {structured ESG data}
+            }
 
-        if not content:
-            logger.error(f"No usable content found to classify company: '{company_name}'")
-            return None
-
-        logger.info(f"Building classification prompt for company: '{company_name}'")
-        messages = build_company_classification_prompt(content, GICS_CLASSIFICATION_SCHEMA)
-
-        completion = openai_client.responses.parse(
-            model=config.OPENAI_PEERS_TOOL_MODEL,
-            input=messages,
-            text_format=CompanyMetadata,
-            temperature=0,
-        )
-        return completion.output_parsed
-
-    except Exception as e:
-        logger.error(f"Error classifying company '{company_name}': {e}", exc_info=True)
-        return None
-
-def get_peer_companies(
-    metadata: CompanyMetadata,
-    num_country_peers: Optional[int] = None,
-    num_region_peers: Optional[int] = None
-) -> Dict[str, List[Dict[str, str]]]:
-    """
-    Retrieve ESG peer companies for a given company using GICS metadata.
-
-    Args:
-        metadata (CompanyMetadata): Includes company_name, sector, industry_group,
-                                    industry, sub_industries, headquarters, country, region.
-        num_country_peers (Optional[int]): Number of country-level peers to retrieve.
-        num_region_peers (Optional[int]): Number of regional-level peers to retrieve.
-
-    Returns:
-        Dict[str, List[Dict[str, str]]]: Dictionary with keys "country_peers" and/or "region_peers".
-    """
-    if not metadata:
-        logger.error("Aborting peer analysis: metadata is None.")
-        return {}
-    
-    if num_country_peers is None and num_region_peers is None:
-        num_country_peers = 5
-        num_region_peers = 5
-    elif num_country_peers and not num_region_peers:
-        num_region_peers = 0
-    elif num_region_peers and not num_country_peers:
-        num_country_peers = 0
-    elif num_country_peers <= 0 and num_region_peers <= 0:
-        logger.warning("Both peer counts are 0. Defaulting to 5 each.")
-        num_country_peers = num_region_peers = 5
-
-    logger.info(f"Initiating peer analysis for '{metadata.company_name}'. "
-                f"Country peers: {num_country_peers}, Region peers: {num_region_peers}")
-    
-    try:
-
-        prompt = build_peer_prompt(
-            company_name=metadata.company_name,
-            sector=metadata.sector,
-            industry_group=metadata.industry_group,
-            industry=metadata.industry,
-            sub_industries=metadata.sub_industries,
-            headquarters=metadata.headquarters,
-            country=metadata.country,
-            region=metadata.region,
-            num_country_peers=num_country_peers,
-            num_region_peers=num_region_peers
-        )
-
-
-        response = openai_client.responses.create(
-            model="gpt-4.1",
-            tools=[{
-                "type": "web_search_preview",
-                "search_context_size": "low",
-            }],
-            input=prompt,
-            temperature=0
-        )
-        result = response.output_text
-        logger.info(f"Result : {result}")
-        return result
-
-    except Exception as e:
-        logger.error(f"[Exception] Failed to retrieve peer companies: {e}", exc_info=True)
-
-    return {}
-
-def get_company_sustainability_report(company: str, year: Optional[int] = None) -> List[str]:
-    """
-    Fetches URLs of the company's sustainability report (PDF) for a given year.
-    
-    Args:
-        company (str): Name of the company.
-        year (Optional[int]): Year of the sustainability report (optional).
-        
-    Returns:
-        List[str]: List of URLs pointing to PDF files of the sustainability reports.
-    """
-    logger.info(f"Searching for sustainability report for '{company}'" + (f" in {year}" if year else ""))
-
-    try:
-        base_query = f"{company} sustainability report"
-        query = f"{base_query} {year} filetype:pdf" if year else f"{base_query} filetype:pdf"
-        response = fetch_info_from_tavily(query)
-        logger.info(f"Response : {response}")
-        
-        if not response or 'results' not in response:
-            logger.warning("No results found or invalid response structure.")
-            return []
-
-        urls = [res.get("url") for res in response['results'] if res.get("url")]
-        logger.info(f"Found {len(urls)} report(s) for '{company}'")
-        return urls
-
-    except Exception as e:
-        logger.error(f"Error while fetching report for '{company}': {e}", exc_info=True)
-        return []
-    
-def upsert_esg_report(document: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Upserts a year-specific ESG report into the 'esg_reports.{year}' field of a company document.
-
-    If the company (_id) exists, the ESG report for the given year is updated. Otherwise,
-    a new document is created. Logs success or error.
-
-    Args:
-        document (Dict): Must contain 'company_id', 'year', and 'esg_report'.
-
-    Returns:
-        Dict[str, Any]: Result including status ('inserted', 'updated', 'unchanged', or 'error'), and details.
+    Output:
+        dict | None:
+            {
+                "status": "inserted" | "updated" | "unchanged" | "error",
+                "company_id": str,
+                "year": str,
+                "esg_report_keys": list[str] (optional),
+                "message": str (on error),
+                "missing_keys": list[str] (on error)
+            }
     """
     try:
         logger.info(f"Input document: {document}")
@@ -356,3 +252,181 @@ def upsert_esg_report(document: Dict[str, Any]) -> Dict[str, Any]:
             "company_id": document.get("company_id"),
             "year": str(document.get("year", "")),
         }
+
+@tool
+def fetch_company_metadata(company_name: str) -> Optional[CompanyMetadata]:
+    """
+    Tool: Company GICS Classifier
+
+    Uses unstructured web content to classify a company into the GICS taxonomy.
+
+    This tool:
+    - Retrieves content via Tavily.
+    - Uses OpenAI to classify based on GICS schema.
+    - Returns structured metadata (sector, industry, region, etc.).
+
+    Input:
+        company_name (str): Name of the company to classify.
+
+    Output:
+        CompanyMetadata | None:
+            {
+                company_name, sector, industry_group, industry,
+                sub_industries, headquarters, country, region
+            }
+
+    Returns None on classification failure or missing data.
+    """
+    try:
+        query = f"What does {company_name} do and where is it located?"
+        response = fetch_info_from_tavily(query=query)
+        if not response or 'results' not in response:
+            logger.error(f"No results found for company: '{company_name}'")
+            return None
+
+        content = [
+            res.get("content")
+            for res in response['results']
+            if res.get("content")
+        ]
+
+        if not content:
+            logger.error(f"No usable content found to classify company: '{company_name}'")
+            return None
+
+        logger.info(f"Building classification prompt for company: '{company_name}'")
+        messages = build_company_classification_prompt(content, GICS_CLASSIFICATION_SCHEMA)
+
+        completion = openai_client.responses.parse(
+            model=config.OPENAI_PEERS_TOOL_MODEL,
+            input=messages,
+            text_format=CompanyMetadata,
+            temperature=0,
+        )
+        return completion.output_parsed
+
+    except Exception as e:
+        logger.error(f"Error classifying company '{company_name}': {e}", exc_info=True)
+        return None
+
+@tool
+def get_peer_companies(
+    metadata: CompanyMetadata,
+    num_country_peers: Optional[int] = None,
+    num_region_peers: Optional[int] = None
+) -> Dict[str, List[Dict[str, str]]]:
+    """
+    Tool: Peer Company Finder
+
+    Finds ESG peer companies using GICS classification and geographic metadata.
+
+    This tool:
+    - Builds a contextual prompt for OpenAI.
+    - Uses structured metadata (sector, country, etc.) to retrieve peer companies.
+    - Returns peers grouped by geography (country and region).
+
+    Input:
+        metadata (CompanyMetadata): Includes classification and location details.
+        num_country_peers (int, optional): Number of peers from the same country (default 5).
+        num_region_peers (int, optional): Number of peers from the same region (default 5).
+
+    Output:
+        dict:
+            {
+                "country_peers": [ {name, sector, ...}, ... ],
+                "region_peers": [ {name, sector, ...}, ... ]
+            }
+
+    Returns empty dict on failure or invalid input.
+    """
+    if not metadata:
+        logger.error("Aborting peer analysis: metadata is None.")
+        return {}
+    
+    if num_country_peers is None and num_region_peers is None:
+        num_country_peers = 5
+        num_region_peers = 5
+    elif num_country_peers and not num_region_peers:
+        num_region_peers = 0
+    elif num_region_peers and not num_country_peers:
+        num_country_peers = 0
+    elif num_country_peers <= 0 and num_region_peers <= 0:
+        logger.error("Both peer counts are 0. Defaulting to 5 each.")
+        num_country_peers = num_region_peers = 5
+
+    logger.info(f"Initiating peer analysis for '{metadata.company_name}'. "
+                f"Country peers: {num_country_peers}, Region peers: {num_region_peers}")
+    
+    try:
+
+        prompt = build_peer_prompt(
+            company_name=metadata.company_name,
+            sector=metadata.sector,
+            industry_group=metadata.industry_group,
+            industry=metadata.industry,
+            sub_industries=metadata.sub_industries,
+            headquarters=metadata.headquarters,
+            country=metadata.country,
+            region=metadata.region,
+            num_country_peers=num_country_peers,
+            num_region_peers=num_region_peers
+        )
+
+
+        response = openai_client.responses.create(
+            model=config.OPENAI_PEERS_TOOL_MODEL,
+            tools=[{
+                "type": "web_search_preview",
+                "search_context_size": "low",
+            }],
+            input=prompt,
+            temperature=0
+        )
+        result = response.output_text
+        logger.info(f"Result : {result}")
+        return result
+
+    except Exception as e:
+        logger.error(f"[Exception] Failed to retrieve peer companies: {e}", exc_info=True)
+
+    return {}
+
+@tool
+def get_company_sustainability_report(company: str, year: Optional[int] = None) -> List[str]:
+    """
+    Tool: Sustainability Report Fetcher
+
+    Searches for publicly available sustainability (ESG) report PDFs for a given company.
+
+    This tool:
+    - Uses Tavily web search to find sustainability PDFs.
+    - Filters results by year if specified.
+
+    Input:
+        company (str): Company name.
+        year (int, optional): Year to search for (e.g., 2022).
+
+    Output:
+        list[str]: URLs of PDF reports .
+
+    Returns an empty list if no valid URLs are found.
+    """
+    logger.info(f"Searching for sustainability report for '{company}'" + (f" in {year}" if year else ""))
+
+    try:
+        base_query = f"{company} sustainability report"
+        query = f"{base_query} {year} filetype:pdf" if year else f"{base_query} filetype:pdf"
+        response = fetch_info_from_tavily(query)
+        logger.info(f"Response : {response}")
+        
+        if not response or 'results' not in response:
+            logger.warning("No results found or invalid response structure.")
+            return []
+
+        urls = [res.get("url") for res in response['results'] if res.get("url")]
+        logger.info(f"Found {len(urls)} report(s) for '{company}'")
+        return urls
+
+    except Exception as e:
+        logger.error(f"Error while fetching report for '{company}': {e}", exc_info=True)
+        return []

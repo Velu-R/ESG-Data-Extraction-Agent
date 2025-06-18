@@ -7,3 +7,4 @@ logs
 gics_format.json
 gics_schema.xlsx
 src/tests/test.py
+main.py

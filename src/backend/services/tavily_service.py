@@ -1,15 +1,10 @@
 import os
 from typing import Literal, Dict, Any
 
-from tavily import TavilyClient
-
-
 from src.backend.utils.logger import get_logger
+from src.backend.config.config import config
 
 logger = get_logger()
-
-TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
-tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 
 def fetch_info_from_tavily(query: str, search_depth: Literal['basic', 'advanced'] = "basic") -> Dict[str, Any]:
     """
@@ -45,6 +40,7 @@ def fetch_info_from_tavily(query: str, search_depth: Literal['basic', 'advanced'
     """
     try:
         logger.info("Querying Tavily: '%s'", query)
+        tavily_client = config.get_tavily_client()
         response = tavily_client.search(query=query, search_depth=search_depth)
 
         if not isinstance(response, dict):

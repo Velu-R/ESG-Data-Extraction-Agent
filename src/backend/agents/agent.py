@@ -1,8 +1,8 @@
 from langgraph.prebuilt import create_react_agent
 from langchain_core.runnables import Runnable
-from langchain_openai import ChatOpenAI
 
-from src.backend.utils.state import AgentState
+from src.backend.config.llm_factory import LLMFactory
+from src.backend.schemas.state import AgentState
 from src.backend.utils.system_prompts import (
     EXTRACTOR_AGENT_PROMPT,
     SCRAPER_SYSTEM_PROMPT,
@@ -20,6 +20,8 @@ from langgraph_supervisor import create_supervisor
 
 logger = get_logger()
 
+openai_llm = LLMFactory("openai").llm
+
 # ---------- Agent Initialization ----------
 
 def initialize_extractor_agent() -> Runnable:
@@ -29,10 +31,10 @@ def initialize_extractor_agent() -> Runnable:
     """
     logger.info("Initializing Extractor Agent...")
     return create_react_agent(
-        model="openai:gpt-4o-mini",
+        model=openai_llm,
         tools=[extract_emission_data_as_json, upsert_esg_report],
         prompt=EXTRACTOR_AGENT_PROMPT,
-        name="extractor_assistant",
+        name="extractor_agent",
         state_schema=AgentState
     )
 
@@ -43,10 +45,10 @@ def initialize_scraper_agent() -> Runnable:
     """
     logger.info("Initializing Scraper Agent...")
     return create_react_agent(
-        model="openai:gpt-4o-mini",
+        model=openai_llm,
         tools=[fetch_company_metadata, get_peer_companies, get_company_sustainability_report],
         prompt=SCRAPER_SYSTEM_PROMPT,
-        name="scraper_assistant",
+        name="scraper_agent",
         state_schema=AgentState
     )
 
@@ -57,7 +59,7 @@ def initialize_supervisor_agent(scraper_agent: Runnable, extractor_agent: Runnab
     logger.info("Initializing Supervisor Agent...")
     return create_supervisor(
         agents=[scraper_agent, extractor_agent],
-        model=ChatOpenAI(model="gpt-4o-mini"),
+        model=openai_llm,
         prompt=SUPERVISOR_SYSTEM_PROMPT,
         state_schema=AgentState,
         output_mode="full_history",
